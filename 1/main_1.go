@@ -31,7 +31,7 @@ func main() {
 		return
 	}
 	
-	fmt.Printf("Хеш SHA256: %s\n", hex.EncodeToString(hashed))
+	fmt.Printf("Хеш SHA256: %s\n", hashed)
 }
 
 func convertVarsToString() (string, error) {
@@ -48,7 +48,7 @@ func convertVarsToString() (string, error) {
 	return allStrings, nil
 }
 
-func hashStringWithSalt(str string, salt string) ([]byte, error) {
+func hashStringWithSalt(str string, salt string) (string, error) {
 	runes := []rune(str)
 	saltRunes := []rune(salt)
 
@@ -63,8 +63,10 @@ func hashStringWithSalt(str string, salt string) ([]byte, error) {
 	resultString := string(resultRunes)
 	resultBytes := []byte(resultString)
 
-	hash := sha256.Sum256(resultBytes)
-	return hash[:], nil
+	hasher := sha256.New()
+	hasher.Write(resultBytes)
+
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func printTypesVars() {

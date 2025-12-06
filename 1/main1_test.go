@@ -51,7 +51,9 @@ func TestHashStringWithSalt(t *testing.T) {
 	expectedString := string(expectedRunes)
 	expectedBytes := []byte(expectedString)
 
-	expectedHash := sha256.Sum256(expectedBytes)
+	expectedHash := sha256.New()
+	expectedHash.Write(expectedBytes)
+
 
 	resultHash, err := hashStringWithSalt(testString, testSalt)
 	if err != nil {
@@ -62,9 +64,9 @@ func TestHashStringWithSalt(t *testing.T) {
 		t.Error("hashStringWithSalt() вернула пустой хеш")
 	}
 
-	if hex.EncodeToString(resultHash) != hex.EncodeToString(expectedHash[:]) {
+	if resultHash != hex.EncodeToString(expectedHash.Sum(nil)) {
 		t.Errorf("hashStringWithSalt() вернула неправильный хеш.\nПолучено: %s\nОжидалось: %s",
-			hex.EncodeToString(resultHash),
-			hex.EncodeToString(expectedHash[:]))
+			resultHash,
+			expectedHash)
 	}
 }
