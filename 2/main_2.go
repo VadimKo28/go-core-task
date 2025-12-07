@@ -16,14 +16,14 @@ func main() {
 
 	fmt.Printf("элементы слайса: % d\n", s)
 	newSlice := addElements(s, 999)
-	fmt.Printf("Добавили новый элемент в слайс: % d\n", newSlice)
+	fmt.Printf("Получили новый слайс с добавленным элементом: % d\n", newSlice)
 
 	fmt.Printf("Передаём в функцию copy слайс %d\n", s)
 	fmt.Printf("Его адрес %p\n", s)
 
 	copy := copySlice(s)
 	fmt.Printf("Получаем копию слайса %d\n", copy)
-	fmt.Printf("Её адрес %p\n", copy)
+	fmt.Printf("Её адрес в памяти отличается%p\n", copy)
 
 	fmt.Printf("Передаём в функцию удаления слайс %d\n", s)
 	index := 4
@@ -58,7 +58,9 @@ func removeElement(s []int, index int) []int {
 		return s
 	}
 
-	return append(s[:index], s[index+1:]...)
+	copy(s[index:], s[index+1:])
+
+	return s[:len(s) -1]
 }
 
 func sliceExample(s []int) []int {
