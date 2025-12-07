@@ -9,11 +9,10 @@ func main() {
 	size := 10
 	s := make([]int, size)
 	randomSliceNumbers := genenerateRandomNumbersSlice(size, s)
-	fmt.Printf("слайс случайных чисел: %d\n", randomSliceNumbers)
+	fmt.Printf("Сгенерили слайс случайных чисел: %d\n", randomSliceNumbers)
 
   evenNumbers := sliceExample(s)
-	fmt.Printf("слайс чётных чисел: %d\n", evenNumbers)
-
+	fmt.Printf("Из исходного слайса получили новый слайс чётных чисел: %d\n", evenNumbers)
 
 	fmt.Printf("элементы слайса: % d\n", s)
 	newSlice := addElements(s, 999)
@@ -26,6 +25,11 @@ func main() {
 	fmt.Printf("Получаем копию слайса %d\n", copy)
 	fmt.Printf("Её адрес %p\n", copy)
 
+	fmt.Printf("Передаём в функцию удаления слайс %d\n", s)
+	index := 4
+	newSlise := removeElement(s, index)
+  fmt.Printf("Получаем новый слайс без элемента с индексом %d\n", index)
+	fmt.Println(newSlise)
 }
 
 func addElements(s []int, element int) []int {
