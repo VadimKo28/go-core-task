@@ -49,6 +49,14 @@ func genenerateRandomNumbersSlice(size int, s []int) []int {
 	return s
 }
 
+func removeElement(s []int, index int) []int {
+	if index < 0 || index >= len(s) {
+		return s
+	}
+
+	return append(s[:index], s[index+1:]...)
+}
+
 func sliceExample(s []int) []int {
 	newSlice := make([]int, 0)
 
