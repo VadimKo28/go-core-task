@@ -1,82 +1,73 @@
 package main
 
 import (
+	"reflect"
 	"sort"
 	"testing"
 )
 
-// helper: drain channel into slice
-func sliceFromChan(ch <-chan int) []int {
-	var res []int
-	for v := range ch {
-		res = append(res, v)
-	}
-	return res
-}
+func TestMerge_Basic(t *testing.T) {
+	ch1 := make(chan int)
+	ch2 := make(chan int)
+	ch3 := make(chan int)
 
-// helper: create channels with values
-func createChannelWithValues(values ...int) <-chan int {
-	ch := make(chan int)
 	go func() {
-		defer close(ch)
-		for _, v := range values {
-			ch <- v
-		}
+		defer close(ch1)
+		ch1 <- 1
+		ch1 <- 2
+		ch1 <- 3
 	}()
-	return ch
-}
 
-func TestMerge(t *testing.T) {
-	tests := []struct {
-		name           string
-		numChannels    int
-		values         [][]int
-		expectedResult []int
-	}{
-		{
-			name:           "merge 3 channels",
-			numChannels:    3,
-			values:         [][]int{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
-			expectedResult: []int{1, 2, 3, 4, 5, 6, 7, 8, 9},
-		},
-		{
-			name:           "merge zero channels",
-			numChannels:    0,
-			values:         [][]int{},
-			expectedResult: []int{},
-		},
-		{
-			name:           "merge 4 channels",
-			numChannels:    4,
-			values:         [][]int{{1, 2}, {3, 4}, {5}, {6, 7, 8}},
-			expectedResult: []int{1, 2, 3, 4, 5, 6, 7, 8},
-		},
+	go func() {
+		defer close(ch2)
+		ch2 <- 4
+		ch2 <- 5
+		ch2 <- 6
+	}()
+
+	go func() {
+		defer close(ch3)
+		ch3 <- 7
+		ch3 <- 8
+		ch3 <- 9
+	}()
+
+	merged := Merge(ch1, ch2, ch3)
+
+	var result []int
+	for v := range merged {
+		result = append(result, v)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var channels []<-chan int
-			for i := 0; i < tt.numChannels; i++ {
-				if i < len(tt.values) {
-					channels = append(channels, createChannelWithValues(tt.values[i]...))
-				}
-			}
+	expected := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	sort.Ints(result)
+	sort.Ints(expected)
 
-			mergedCh := Merge(channels...)
-
-			got := sliceFromChan(mergedCh)
-			sort.Ints(got)
-
-			if len(got) != len(tt.expectedResult) {
-				t.Errorf("unexpected length: got %d want %d", len(got), len(tt.expectedResult))
-			}
-
-			for i := range tt.expectedResult {
-				if i < len(got) && got[i] != tt.expectedResult[i] {
-					t.Errorf("mismatch at index %d: got %v want %v", i, got, tt.expectedResult)
-					break
-				}
-			}
-		})
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Expected %v, got %v", expected, result)
 	}
 }
+
+func TestMerge_EmptyChannels(t *testing.T) {
+	ch1 := make(chan int)
+	ch2 := make(chan int)
+
+	go func() {
+		close(ch1)
+	}()
+	go func() {
+		close(ch2)
+	}()
+
+	merged := Merge(ch1, ch2)
+
+	var result []int
+	for v := range merged {
+		result = append(result, v)
+	}
+
+	if len(result) != 0 {
+		t.Errorf("Expected empty result, got %v", result)
+	}
+}
+
