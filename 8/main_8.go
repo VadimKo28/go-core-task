@@ -1,109 +1,71 @@
 package main
 
-type Semaphore struct {
-	C chan struct{}
-}
+import (
+	"sync"
+	"fmt"
+	"time"
+)
 
-func (s *Semaphore) Acquire() {
-	s.C <- struct{}{}
-}
-
-func (s *Semaphore) Release() {
-	<-s.C
-}
-
-type SemaphoreWaitGroup struct {
+type WaitGroup struct {
+	mu      sync.Mutex
 	counter int
-	sem     *Semaphore
-	done    chan struct{}
+	sem     chan struct{}
 }
 
-func NewSemaphoreWaitGroup() *SemaphoreWaitGroup {
-	wg := &SemaphoreWaitGroup{
-		sem: &Semaphore{C: make(chan struct{}, 1),},
-		done: make(chan struct{}),
+func NewWaitGroup() *WaitGroup {
+	return &WaitGroup{
+		sem: make(chan struct{}),
 	}
-	wg.sem.Acquire()
-	return wg
 }
 
-func (wg *SemaphoreWaitGroup) Add(delta int) {
-	wg.sem.Acquire()
-	
-	wg.counter += delta
-	
+func (wg *WaitGroup) Add(count int) {
+	wg.mu.Lock()
+	defer wg.mu.Unlock()
+
+	wg.counter += count
+
 	if wg.counter < 0 {
-		wg.sem.Release()
-		panic("negative counter")
+		panic("negative WaitGroup counter")
 	}
-	
+
 	if wg.counter == 0 {
-		select {
-		case <-wg.done:
-		default:
-			close(wg.done)
-		}
-	} else {
-		select {
-		case <-wg.done:
-			wg.done = make(chan struct{})
-		default:
-		}
+		close(wg.sem)
+		wg.sem = make(chan struct{})
 	}
-	
-	wg.sem.Release()
 }
 
-func (wg *SemaphoreWaitGroup) Done() {
+func (wg *WaitGroup) Done() {
 	wg.Add(-1)
 }
 
-func (wg *SemaphoreWaitGroup) Wait() {
-	<-wg.done
+func (wg *WaitGroup) Wait() {
+	wg.mu.Lock()
+	sem := wg.sem
+	if wg.counter == 0 {
+		wg.mu.Unlock()
+		return
+	}
+	wg.mu.Unlock()
+
+	<-sem
 }
 
+
 func main() {
-	wg := NewSemaphoreWaitGroup()
+	wg := NewWaitGroup()
 	
-	wg.Add(3)
+	fmt.Println("Запуск 5 горутин...")
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			fmt.Printf("Горутина %d начала работу\n", id)
+			time.Sleep(time.Duration(id+1) * time.Second)
+			fmt.Printf("Горутина %d завершила работу\n", id)
+		}(i)
+	}
 	
-	go func() {
-		defer wg.Done()
-		println("Goroutine 1 started")
-		println("Goroutine 1 finished")
-	}()
-	
-	go func() {
-		defer wg.Done()
-		println("Goroutine 2 started")
-		println("Goroutine 2 finished")
-	}()
-	
-	go func() {
-		defer wg.Done()
-		println("Goroutine 3 started")
-		println("Goroutine 3 finished")
-	}()
-	
-	println("Waiting for all goroutines to complete...")
+	fmt.Println("Ожидание завершения всех горутин...")
 	wg.Wait()
-	println("All goroutines completed!")
-	
-	wg.Add(2)
-	
-	go func() {
-		defer wg.Done()
-		println("Goroutine 4 started")
-		println("Goroutine 4 finished")
-	}()
-	
-	go func() {
-		defer wg.Done()
-		println("Goroutine 5 started")
-		println("Goroutine 5 finished")
-	}()
-	
-	println("Waiting for goroutines 4 and 5...")
-	wg.Wait()
-	println("All done!")
+	fmt.Println("Все горутины завершены!")
 }
